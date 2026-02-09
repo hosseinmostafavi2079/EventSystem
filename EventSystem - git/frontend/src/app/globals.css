@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* تنظیمات کلی بدنه سایت */
+body {
+  background-color: #F3F4F6; /* رنگ پس‌زمینه کلی */
+  font-family: var(--font-vazir), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* اسکرول‌بار زیبا (اختیاری) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
