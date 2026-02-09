@@ -2,21 +2,22 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { PhotoIcon, UserCircleIcon } from '@heroicons/react/24/solid';
+import { PhotoIcon, UserCircleIcon, TagIcon } from '@heroicons/react/24/solid'; // TagIcon اضافه شد
 import toast from 'react-hot-toast';
 
 export default function CreateEvent() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [lecturers, setLecturers] = useState([]);
   
-  // استیت برای پیش‌نمایش عکس
+  // لیست‌های دریافتی از سرور
+  const [lecturers, setLecturers] = useState([]);
+  const [categories, setCategories] = useState([]); // <--- جدید
+  
   const [imagePreview, setImagePreview] = useState(null);
 
-  // استیت فرم
   const [formData, setFormData] = useState({
     title: '',
-    category: 'educational', // پیش‌فرض
+    category: '', // <--- حالا ID دسته‌بندی را نگه می‌دارد
     lecturer: '',
     location: '',
     price: '',
@@ -26,11 +27,17 @@ export default function CreateEvent() {
     image: null
   });
 
-  // دریافت لیست مدرس‌ها برای پر کردن دراپ‌داون
+  // دریافت لیست مدرس‌ها و دسته‌بندی‌ها هنگام لود صفحه
   useEffect(() => {
+    // گرفتن مدرسین
     axios.get('http://127.0.0.1:8000/api/lecturers/')
       .then(res => setLecturers(res.data))
-      .catch(err => console.error("Error fetching lecturers:", err));
+      .catch(err => console.error(err));
+
+    // گرفتن دسته‌بندی‌ها (بخش جدید)
+    axios.get('http://127.0.0.1:8000/api/categories/')
+      .then(res => setCategories(res.data))
+      .catch(err => console.error(err));
   }, []);
 
   const handleChange = (e) => {
@@ -42,7 +49,7 @@ export default function CreateEvent() {
     const file = e.target.files[0];
     if (file) {
       setFormData({ ...formData, image: file });
-      setImagePreview(URL.createObjectURL(file)); // ساخت پیش‌نمایش
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -50,10 +57,9 @@ export default function CreateEvent() {
     e.preventDefault();
     setLoading(true);
 
-    // ساخت FormData برای ارسال فایل
     const data = new FormData();
     data.append('title', formData.title);
-    data.append('category', formData.category);
+    data.append('category', formData.category); // ID ارسال می‌شود
     if (formData.lecturer) data.append('lecturer', formData.lecturer);
     data.append('location', formData.location);
     data.append('price', formData.price);
@@ -69,22 +75,19 @@ export default function CreateEvent() {
       await axios.post('http://127.0.0.1:8000/api/events/', data, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data' // حیاتی برای آپلود عکس
+          'Content-Type': 'multipart/form-data'
         }
       });
       toast.success('رویداد با موفقیت ساخته شد!');
-      router.push('/admin/events'); // بازگشت به لیست
+      router.push('/admin/events');
     } catch (err) {
-      console.error("جزئیات خطا:", err.response?.data); // <--- این خط را حتماً اضافه کن تا در کنسول ببینی
-      
-      // نمایش خطای دقیق به کاربر
-      if (err.response?.data) {
-        const errorMessages = Object.entries(err.response.data)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join(' | ');
-        toast.error(`خطا: ${errorMessages}`);
+      console.error(err);
+      if(err.response?.data) {
+        // نمایش خطاهای سرور به صورت واضح
+        const messages = Object.entries(err.response.data).map(([k,v]) => `${k}: ${v}`).join(' | ');
+        toast.error(`خطا: ${messages}`);
       } else {
-        toast.error('خطا در ساخت رویداد. ورودی‌ها را چک کنید.');
+        toast.error('خطا در ارتباط با سرور');
       }
     } finally {
       setLoading(false);
@@ -97,9 +100,9 @@ export default function CreateEvent() {
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* --- ستون چپ: آپلود عکس --- */}
+        {/* ستون چپ: آپلود عکس (بدون تغییر) */}
         <div className="md:col-span-1">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center">
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 text-center sticky top-8">
                 <label className="cursor-pointer block relative group">
                     <div className={`aspect-square rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden ${!imagePreview ? 'bg-gray-50' : ''}`}>
                         {imagePreview ? (
@@ -110,39 +113,42 @@ export default function CreateEvent() {
                                 <span className="text-sm font-bold">انتخاب تصویر</span>
                             </div>
                         )}
-                        {/* overlay برای تغییر عکس */}
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-2xl">
                             <span className="text-white font-bold text-sm">تغییر تصویر</span>
                         </div>
                     </div>
                     <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                 </label>
-                <p className="text-xs text-gray-400 mt-4">فرمت‌های مجاز: JPG, PNG (حداکثر ۵ مگابایت)</p>
+                <p className="text-xs text-gray-400 mt-4">فرمت‌های مجاز: JPG, PNG</p>
             </div>
         </div>
 
-        {/* --- ستون راست: فرم اطلاعات --- */}
+        {/* ستون راست: فرم اطلاعات */}
         <div className="md:col-span-2 space-y-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
             
-            {/* عنوان */}
             <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">عنوان رویداد</label>
                 <input required name="title" onChange={handleChange} type="text" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none" placeholder="مثلاً: کارگاه آموزش ریکت" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                {/* دسته‌بندی */}
+                
+                {/* دسته‌بندی (داینامیک شده) */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">دسته‌بندی</label>
-                    <select name="category" onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none">
-                        <option value="educational">آموزشی</option>
-                        <option value="cultural">فرهنگی</option>
-                        <option value="sports">ورزشی</option>
-                        <option value="social">اجتماعی</option>
-                    </select>
+                    <div className="relative">
+                        <select required name="category" onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none appearance-none">
+                            <option value="">انتخاب کنید...</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.title}</option>
+                            ))}
+                        </select>
+                        <TagIcon className="w-5 h-5 text-gray-400 absolute left-3 top-3.5 pointer-events-none" />
+                    </div>
+                    {categories.length === 0 && <p className="text-xs text-red-500 mt-1">ابتدا دسته‌بندی بسازید!</p>}
                 </div>
 
-                {/* مدرس */}
+                {/* مدرس (داینامیک شده) */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">مدرس</label>
                     <div className="relative">
@@ -157,14 +163,12 @@ export default function CreateEvent() {
                 </div>
             </div>
 
+            {/* بقیه فیلدها (بدون تغییر) */}
             <div className="grid grid-cols-2 gap-4">
-                {/* قیمت */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">قیمت (تومان)</label>
                     <input required name="price" onChange={handleChange} type="number" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none" placeholder="0" />
                 </div>
-
-                {/* ظرفیت */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">ظرفیت (نفر)</label>
                     <input required name="capacity" onChange={handleChange} type="number" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none" placeholder="50" />
@@ -172,23 +176,19 @@ export default function CreateEvent() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                {/* مکان */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">مکان برگزاری</label>
                     <input required name="location" onChange={handleChange} type="text" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none" placeholder="تهران، ..." />
                 </div>
-
-                {/* زمان */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">زمان شروع</label>
                     <input required name="start_time" onChange={handleChange} type="datetime-local" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none text-right" />
                 </div>
             </div>
 
-            {/* توضیحات */}
             <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">توضیحات کامل</label>
-                <textarea required name="description" onChange={handleChange} rows="4" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none" placeholder="توضیحات رویداد را اینجا بنویسید..."></textarea>
+                <textarea required name="description" onChange={handleChange} rows="4" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 outline-none" placeholder="توضیحات رویداد..."></textarea>
             </div>
 
             <button 

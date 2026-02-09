@@ -7,7 +7,9 @@ import {
   UsersIcon, 
   BanknotesIcon, 
   ArrowRightOnRectangleIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  TagIcon,          
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 export default function AdminSidebar() {
@@ -18,6 +20,8 @@ export default function AdminSidebar() {
     { name: 'مدیریت رویدادها', href: '/admin/events', icon: CalendarDaysIcon },
     { name: 'کاربران', href: '/admin/users', icon: UsersIcon },
     { name: 'تراکنش‌ها', href: '/admin/transactions', icon: BanknotesIcon },
+    { name: 'دسته‌بندی‌ها', href: '/admin/categories', icon: TagIcon },
+    { name: 'مدرسین', href: '/admin/lecturers', icon: AcademicCapIcon },
   ];
 
   return (

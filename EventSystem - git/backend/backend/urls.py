@@ -12,11 +12,13 @@ from core.views import RegisterView
 from payments.views import PurchaseTicketView
 from events.views import EventViewSet, LecturerViewSet, MyTicketsView
 from events.views import EventViewSet, LecturerViewSet, MyTicketsView, AdminStatsView
+from events.views import CategoryViewSet
 
 # ساخت روتر خودکار برای APIها
 router = DefaultRouter()
 router.register(r'events', EventViewSet)
 router.register(r'lecturers', LecturerViewSet)
+router.register(r'categories', CategoryViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

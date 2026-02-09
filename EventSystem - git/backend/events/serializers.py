@@ -1,20 +1,42 @@
 from rest_framework import serializers
-from .models import Event, Lecturer, Ticket
+from .models import Event, Lecturer, Ticket, Category
 
+# --- سریالایزر دسته‌بندی ---
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'title', 'slug']
+
+# --- سریالایزر مدرس ---
 class LecturerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lecturer
-        fields = ['id', 'name', 'specialty', 'image', 'bio']
+        fields = ['id', 'name', 'specialty', 'bio', 'image']
 
+# --- سریالایزر رویداد ---
 class EventSerializer(serializers.ModelSerializer):
-    lecturer = LecturerSerializer(read_only=True)
+    # برای خواندن (GET): آبجکت کامل را برمی‌گرداند (مثلاً شامل عکس مدرس)
+    lecturer_details = LecturerSerializer(source='lecturer', read_only=True)
+    category_details = CategorySerializer(source='category', read_only=True)
+
     class Meta:
         model = Event
-        fields = '__all__'
+        fields = [
+            'id', 'title', 'description', 
+            'category', 'category_details', # هم ID را داریم هم جزئیات
+            'lecturer', 'lecturer_details', 
+            'start_time', 'location', 'price', 
+            'capacity', 'image', 'is_active', 'created_at'
+        ]
+        extra_kwargs = {
+            'category': {'write_only': True}, # هنگام نوشتن فقط ID می‌گیریم
+            'lecturer': {'write_only': True}
+        }
 
-# --- تغییر مهم: رویداد به صورت کامل داخل بلیط قرار می‌گیرد ---
+# --- سریالایزر تیکت ---
 class TicketSerializer(serializers.ModelSerializer):
-    event = EventSerializer(read_only=True)  # <--- این خط جدید است (Nested)
+    # رویداد را کامل نشان می‌دهیم تا در پنل کاربر عکس و عنوان دیده شود
+    event = EventSerializer(read_only=True)
     
     class Meta:
         model = Ticket
