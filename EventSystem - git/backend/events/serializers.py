@@ -7,15 +7,15 @@ class LecturerSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'specialty', 'image', 'bio']
 
 class EventSerializer(serializers.ModelSerializer):
-    # اینجا می‌گوییم به جای ID استاد، کل مشخصاتش را بفرست
     lecturer = LecturerSerializer(read_only=True)
-    
     class Meta:
         model = Event
-        fields = '__all__' # یعنی همه فیلدها (عنوان، قیمت، ظرفیت و...) را بفرست
+        fields = '__all__'
 
+# --- تغییر مهم: رویداد به صورت کامل داخل بلیط قرار می‌گیرد ---
 class TicketSerializer(serializers.ModelSerializer):
+    event = EventSerializer(read_only=True)  # <--- این خط جدید است (Nested)
+    
     class Meta:
         model = Ticket
-        fields = ['id', 'user', 'event', 'status', 'ticket_code', 'purchase_date']
-        read_only_fields = ['ticket_code', 'purchase_date']
+        fields = ['id', 'event', 'status', 'ticket_code', 'purchase_date']

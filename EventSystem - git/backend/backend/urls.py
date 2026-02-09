@@ -10,6 +10,8 @@ from rest_framework_simplejwt.views import (
 )
 from core.views import RegisterView
 from payments.views import PurchaseTicketView
+from events.views import EventViewSet, LecturerViewSet, MyTicketsView
+from events.views import EventViewSet, LecturerViewSet, MyTicketsView, AdminStatsView
 
 # ساخت روتر خودکار برای APIها
 router = DefaultRouter()
@@ -23,6 +25,8 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/register/', RegisterView.as_view(), name='auth_register'),
     path('api/purchase/', PurchaseTicketView.as_view(), name='purchase_ticket'),
+    path('api/my-tickets/', MyTicketsView.as_view(), name='my_tickets'),
+    path('api/admin/stats/', AdminStatsView.as_view(), name='admin_stats'), 
 ]
 
 # تنظیمات نمایش عکس‌های آپلود شده

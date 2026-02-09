@@ -4,10 +4,13 @@ import * as Yup from 'yup';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation'; // <-- این دیگر لازم نیست چون در کانتکست هندل می‌شود
+import { useContext } from 'react'; // <--- اضافه شد
+import { AuthContext } from '../../context/AuthContext'; // <--- اضافه شد
 
 export default function Login() {
-  const router = useRouter();
+  // const router = useRouter(); // حذف شد
+  const { login } = useContext(AuthContext); // <--- دریافت تابع لاگین از سیستم مرکزی
 
   const formik = useFormik({
     initialValues: {
@@ -20,18 +23,16 @@ export default function Login() {
     }),
     onSubmit: async (values) => {
       try {
-        // درخواست به سرور جنگو برای دریافت توکن
-        // نکته: فعلا از آدرس پیش‌فرض جنگو استفاده می‌کنیم
-        // در آینده باید اندپوینت اختصاصی JWT بسازیم
         const res = await axios.post('http://127.0.0.1:8000/api/token/', values);
         
-        // ذخیره توکن در مرورگر
-        localStorage.setItem('access_token', res.data.access);
-        localStorage.setItem('refresh_token', res.data.refresh);
-        
         toast.success('با موفقیت وارد شدید!');
-        setTimeout(() => router.push('/'), 1000); // هدایت به خانه
+        
+        // --- اصلاح مهم: استفاده از تابع کانتکست به جای ذخیره دستی ---
+        // این تابع هم توکن را ذخیره می‌کند، هم استیت سایت را آپدیت می‌کند
+        login(res.data.access, res.data.refresh);
+        
       } catch (err) {
+        console.error(err);
         toast.error('نام کاربری یا رمز عبور اشتباه است.');
       }
     },
