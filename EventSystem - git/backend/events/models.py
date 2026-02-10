@@ -1,14 +1,28 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 
 # --- 1. مدل دسته‌بندی ---
 class Category(models.Model):
     title = models.CharField(max_length=100, verbose_name="عنوان دسته‌بندی")
-    slug = models.SlugField(unique=True, blank=True, null=True, verbose_name="شناسه یکتا")
+    slug = models.SlugField(unique=True, blank=True, null=True, allow_unicode=True, verbose_name="شناسه یکتا")
 
     class Meta:
         verbose_name = "دسته‌بندی"
         verbose_name_plural = "دسته‌بندی‌ها"
+
+    def save(self, *args, **kwargs):
+        # اگر اسلاگ خالی بود، از روی تایتل بساز
+        if not self.slug:
+            # allow_unicode=True برای پشتیبانی از فارسی حیاتی است
+            self.slug = slugify(self.title, allow_unicode=True)
+            
+            # اگر اسلاگ خالی شد (مثلاً کاراکتر غیرمجاز بود)، یک اسلاگ تصادفی بساز
+            if not self.slug:
+                import uuid
+                self.slug = str(uuid.uuid4())[:8]
+                
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
