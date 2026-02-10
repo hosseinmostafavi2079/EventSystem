@@ -1,12 +1,19 @@
 from rest_framework import viewsets, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from django.db.models import Sum
 from django.contrib.auth.models import User
 from .models import Event, Lecturer, Ticket, Category
-from .serializers import EventSerializer, LecturerSerializer, TicketSerializer, CategorySerializer
-# اگر مدل Transaction دارید: from payments.models import Transaction
+from .serializers import (
+    EventSerializer, 
+    LecturerSerializer, 
+    TicketSerializer, 
+    CategorySerializer, 
+    UserListSerializer,
+    UserSerializer
+)
+from django.contrib.auth.models import User
 
 # --- ویوهای اصلی ---
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -28,17 +35,77 @@ class MyTicketsView(generics.ListAPIView):
     def get_queryset(self):
         return Ticket.objects.filter(user=self.request.user, status='paid').order_by('-purchase_date')
 
-# --- آمار ادمین (حفظ شد) ---
-class AdminStatsView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        total_events = Event.objects.count()
-        total_users = User.objects.count()
-        total_tickets = Ticket.objects.filter(status='paid').count()
-        # total_income = ... (محاسبه درآمد مثل قبل)
+# --- بخش ثبت نام ---
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
+
+# --- بخش مدیریت کاربران (که باعث خطا شده بود) ---
+class AdminUserViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAdminUser]
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserListSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        
+        # دریافت تمام تیکت‌های کاربر
+        tickets = Ticket.objects.filter(user=user).select_related('event')
+        
+        tickets_data = []
+        total_spent = 0
+        
+        for ticket in tickets:
+            # بررسی ایمن قیمت
+            price = 0
+            if ticket.event and hasattr(ticket.event, 'price'):
+                price = ticket.event.price
+            
+            total_spent += int(price)
+            
+            tickets_data.append({
+                'id': ticket.id,
+                'event_title': ticket.event.title if ticket.event else "رویداد حذف شده",
+                'event_image': ticket.event.image.url if (ticket.event and ticket.event.image) else None,
+                'purchase_date': ticket.purchased_at if hasattr(ticket, 'purchased_at') else None,
+                'price': price,
+                'location': ticket.event.location if ticket.event else "-"
+            })
+
+        user_data = UserListSerializer(user).data
+        
         return Response({
-            'total_events': total_events,
+            'user_info': user_data,
+            'stats': {
+                'total_tickets': tickets.count(),
+                'total_spent': total_spent,
+            },
+            'tickets': tickets_data
+        })
+
+
+class AdminStatsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        # محاسبه آمار کلی
+        total_users = User.objects.count()
+        total_events = Event.objects.count()
+        total_tickets = Ticket.objects.count()
+        
+        # محاسبه درآمد کل (جمع قیمت رویدادهای فروخته شده)
+        # فرض بر این است که قیمت در مدل Event است و Ticket به Event وصل است
+        # اگر مدل Ticket فیلد price دارد، آن را جمع کنید
+        total_revenue = 0
+        tickets = Ticket.objects.all()
+        for t in tickets:
+            if hasattr(t.event, 'price'):
+                 total_revenue += t.event.price
+
+        return Response({
             'total_users': total_users,
+            'total_events': total_events,
             'total_tickets': total_tickets,
-            'total_income': 0
+            'total_revenue': total_revenue,
         })
