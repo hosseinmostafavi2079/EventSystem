@@ -21,8 +21,13 @@ export default function AdminCategories() {
   useEffect(() => { fetchCats(); }, []);
 
   const handleAdd = async (e) => {
-    e.preventDefault();
-    if(!newCat.trim()) return;
+    e.preventDefault(); // جلوگیری از رفرش شدن صفحه
+
+    // --- اصلاح ۱: اگر خالی بود پیام بده ---
+    if(!newCat.trim()) {
+        toast.error('لطفاً نام دسته‌بندی را بنویسید');
+        return;
+    }
     
     const token = localStorage.getItem('access_token');
     try {
@@ -34,6 +39,7 @@ export default function AdminCategories() {
         setNewCat('');
         fetchCats();
     } catch(err) { 
+        console.error(err);
         toast.error('خطا در افزودن. شاید نام تکراری است؟'); 
     }
   };
@@ -54,14 +60,17 @@ export default function AdminCategories() {
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-black text-gray-800 mb-8">مدیریت دسته‌بندی‌ها</h1>
       
-      {/* فرم افزودن */}
-      <form onSubmit={handleAdd} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 mb-8">
+      {/* --- اصلاح ۲: افزودن relative z-10 به فرم ---
+         این کلاس باعث می‌شود دکمه بالاتر از همه لایه‌ها قرار بگیرد و حتماً کلیک شود 
+      */}
+      <form onSubmit={handleAdd} className="relative z-10 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 mb-8">
         <input 
             value={newCat}
             onChange={e => setNewCat(e.target.value)}
             className="flex-1 p-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-blue-500 transition"
             placeholder="نام دسته‌بندی جدید (مثلاً: همایش‌های علمی)"
         />
+        {/* این دکمه به فرم بالا دستور می‌دهد */}
         <button type="submit" className="bg-blue-600 text-white px-6 rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2">
             <PlusIcon className="w-5 h-5" />
             افزودن

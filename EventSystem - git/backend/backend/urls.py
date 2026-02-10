@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from events.views import EventViewSet, LecturerViewSet
+from events.views import EventViewSet, LecturerViewSet, CategoryViewSet, MyTicketsView, AdminStatsView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
@@ -10,9 +10,6 @@ from rest_framework_simplejwt.views import (
 )
 from core.views import RegisterView
 from payments.views import PurchaseTicketView
-from events.views import EventViewSet, LecturerViewSet, MyTicketsView
-from events.views import EventViewSet, LecturerViewSet, MyTicketsView, AdminStatsView
-from events.views import CategoryViewSet
 
 # ساخت روتر خودکار برای APIها
 router = DefaultRouter()
@@ -28,9 +25,9 @@ urlpatterns = [
     path('api/register/', RegisterView.as_view(), name='auth_register'),
     path('api/purchase/', PurchaseTicketView.as_view(), name='purchase_ticket'),
     path('api/my-tickets/', MyTicketsView.as_view(), name='my_tickets'),
-    path('api/admin/stats/', AdminStatsView.as_view(), name='admin_stats'), 
+    path('api/admin/stats/', AdminStatsView.as_view(), name='admin_stats'),
 ]
 
-# تنظیمات نمایش عکس‌های آپلود شده
+# --- این قسمت حیاتی است: اضافه کردن مسیر فایل‌های مدیا ---
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
